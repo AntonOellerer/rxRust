@@ -67,10 +67,16 @@ macro_rules! impl_observer {
       }
 
       fn error(&mut self, err: Self::Err) {
+        for subject in self.subjects.values_mut() {
+          subject.error(err.clone());
+        }
         self.observer.error(err)
       }
 
       fn complete(&mut self) {
+        for subject in self.subjects.values_mut() {
+          subject.complete();
+        }
         self.observer.complete()
       }
     }
@@ -210,6 +216,18 @@ mod test {
       });
     });
     assert_eq!(2, *value.rc_deref());
+  }
+
+  #[test]
+  fn propagates_complete() {
+    let mut sum = 0;
+    from_iter(vec![1, 2, 3])
+      .group_by(|v| *v)
+      .flat_map(|group| group.sum())
+      .subscribe(|avg| {
+        sum += avg;
+      });
+    assert_eq!(sum, 6);
   }
 
   #[test]
